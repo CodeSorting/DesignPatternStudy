@@ -1,23 +1,27 @@
 package Code;
 
-public class Duck {
-    private String name;
+public abstract class Duck {
+    QuackBehavior quackBehavior;
+    FlyBehavior flyBehavior;
 
-    public Duck(String name) {
-        this.name = name;
+    public Duck() {}
+    public abstract void display();
+
+    public void performQuack() {
+        quackBehavior.quack();
     }
-
-    public void quack() {
-        System.out.println(name + " says Quack!");
+    
+    public void performFly() {
+        flyBehavior.fly();
     }
-
     public void swim() {
-        System.out.println(name + " is swimming!");
+        System.out.println("모든 오리는 물에 뜹니다. 가짜도 뜹니다.");
     }
-
-    public static void main(String[] args) {
-        Duck duck = new Duck("Daffy");
-        duck.quack();
-        duck.swim();
+    
+    public void setFlyBehavior(FlyBehavior fb) {
+        flyBehavior = fb;
+    }
+    public void setQuackBehavior(QuackBehavior qb) {
+        quackBehavior = qb;
     }
 }
