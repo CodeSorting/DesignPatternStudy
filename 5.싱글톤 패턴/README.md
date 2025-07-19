@@ -76,18 +76,55 @@ public static ChocolateBoiler_Singleton getInstance() {
 ### 문제 발생!
 초콜릿 보일러의 fill()에서 끓고(boil 실행 중인데) 있는데 새로운 재료를 넣고 말았다.<br>
 멀티 스레딩 문제가 발생하였다.
+```
+1번 스레드 : public static ChocolateBoiler getInstance() {
+2번 스레드 : public static ChocolateBoiler getInstance() {
+1번 스레드 : if (uniqueInstance==null) {
+2번 스레드 : if (uniqueInstance==null) {
+1번 스레드 :uniqueInstance = new ChocolateBoiler();
+1번 스레드 : return uniqueInstance; } }
+-> object 1 생성
+2번 스레드 : uniqueInstance = new ChocolateBoiler();
+2번 스레드 : return uniqueInstance; } }
+-> object 2 생성
+```
+이를 해결하기 위해서는 동기화를 해야한다.
+```java
+public static synchronized Singleton getInstance() {
+    if (uniqueInstance == null) {
+        uniqueInstance = new Singleton();
+    }
+    return uniqueInstance;
+}
+```
+그러나 동기화를 하면 속도 저하가 일어난다. 처음 생성할 때를 제외하면 동기화는 불필요한 오버헤드만 증가시킨다.
 
-1번 스레드                                         2번 스레드<br>
-public static ChocolateBoiler getInstance() {<br>
-
-                                                   public static ChocolateBoiler getInstance() {<br>
+### 더 효율적으로 멀티스레딩 문제 해결하기
+1. getInstance() 속도가 중요하지 않다면 그냥 동기화 시켜서 냅둔다.
+2. 인스턴스가 필요할 때는 생성하지 말고 처음부터 만든다. 즉, Singleton 인스턴스 변수를 처음부터 초기화하는 방법이다.
+3. 'DCL'을 써서 getInstance()에서 동기화되는 부분을 줄인다. 
+DCL(Double-Checked Locking)을 사용하면 인스턴스가 생성되어 있는지 확인 한 다음 생성되어 있지 않았을 때만 동기화할 수 있다.
+```java
+public class Singleton {
+    private volatile static Singleton uniqueInstance;
     
-if (uniqueInstance==null) {<br>
+    //기타 인스턴스 변수
+    
+    private Singleton() {}
 
-                                                   if (uniqueInstance==null) {<br>
-uniqueInstance = new ChocolateBoiler();<br>
-return uniqueInstance;<br>
+    public static Singleton getInstance() {
+        if (uniqueInstance==null) {
+            synchronized (Singleton.class) {
+                if (uniqueInstance==null) {
+                    uniqueInstance = new Singleton();
+                }
+            }
+        }
+        return uniqueInstance;
+    }
+```
 
-                                                   uniqueInstance = new ChocolateBoiler();<br>
-                                                   return uniqueInstance;<br>
-                                                
+### 초콜릿 보일러에서의 고려 사항
+1. getInstance() synchronized 쓰기 : 항상 올바른 결과가 나온다. 속도 문제가 초콜릿 보일러의 경우 중요하지 않으니 이 방법도 괜찮다.
+2. 인스턴스를 시작하자마자 만들기 : 어차피 초콜릿 보일러의 인스턴스는 항상 필요하니 정적으로 초기화하는 것도 괜찮다.
+3. DCL을 쓰기 : 속도 문제가 그리 중요하지 않은 상황이라 굳이 DCL을 쓸 필요가 없다. 그리고 자바 5 이상 버전에서만 쓸 수 있다는 점도 고려해야한다.
